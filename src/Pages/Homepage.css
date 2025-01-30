@@ -1,0 +1,64 @@
+.homepage {
+    position: relative;
+    height: 100vh;
+    background: url('../Components/Assets/bgimg1.jpg') no-repeat center center/cover;
+    color: white;
+  }
+  .text-transition {
+    animation: fadeIn 2s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  
+  .hero-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100%;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0 2rem;
+  }
+
+  
+  .hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-content h2 {
+    font-size: 2rem;
+    color: #c8aa7a;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .hero-content button {
+    background: #8a6344;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
+  .hero-content button:hover {
+    background: #b99573;
+  }
+  
