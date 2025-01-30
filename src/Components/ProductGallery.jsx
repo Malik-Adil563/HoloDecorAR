@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './ProductGallery.css';
-import AppScene from './AppScene';
+import AppScene from './AppScene.js';
 import loungechair from './Assets/loungechair.png';
 
 const ProductGallery = () => {

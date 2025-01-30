@@ -1,7 +1,7 @@
 import React from 'react';
-import Navbar from '../Components/Navbar/Navbar';
+import Navbar from '../Components/Navbar/Navbar.jsx';
 import '../Pages/Homepage.css';
-import ProductGallery from '../Components/ProductGallery';
+import ProductGallery from '../Components/ProductGallery.jsx';
 
 const Homepage = () => {
   
