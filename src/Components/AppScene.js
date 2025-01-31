@@ -14,7 +14,7 @@ const AppScene = () => {
     }
 
     init();
-    animate();
+    startAR();
 
     return () => {
       if (renderer) {
@@ -39,6 +39,17 @@ const AppScene = () => {
     }
 
     document.body.innerHTML = `<div style="text-align: center; margin-top: 20px; font-size: 18px; color: red;">${message}</div>`;
+  };
+
+  const startAR = async () => {
+    if (navigator.xr) {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+        renderer.xr.setSession(session);
+      } catch (error) {
+        console.error('Failed to start AR session:', error);
+      }
+    }
   };
 
   const init = () => {
