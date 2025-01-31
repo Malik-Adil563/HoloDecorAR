@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { ARButton } from 'https://unpkg.com/three@0.126.0/examples/jsm/webxr/ARButton.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { ARButton } from './ARButton.js'
 import 'webxr-polyfill';
 
 const AppScene = ({ onClose }) => {
@@ -9,7 +9,9 @@ const AppScene = ({ onClose }) => {
   const sceneRef = useRef(null);
   const [showBanner, setShowBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState("");
-  let scene, renderer, controller, model;
+
+  // Declare the variables here
+  let camera, scene, renderer, controller, model;
 
   useEffect(() => {
     checkARSupport();
@@ -42,11 +44,15 @@ const AppScene = ({ onClose }) => {
   };
 
   const init = () => {
+    // Set up the scene, camera, renderer, etc.
     const container = document.createElement('div');
     containerRef.current.appendChild(container);
     sceneRef.current = container;
 
     scene = new THREE.Scene();
+
+    // Properly initialize camera
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 40);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
