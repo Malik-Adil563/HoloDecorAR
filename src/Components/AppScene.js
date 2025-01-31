@@ -164,7 +164,7 @@ const AppScene = ({ onClose }) => {
 
       {/* Close Button */}
       <button
-        onClick={onClose}
+        onClick={() => { onClose(); window.location.reload(); }}
         style={{
           position: 'absolute',
           top: '10px',
