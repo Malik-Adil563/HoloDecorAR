@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import 'webxr-polyfill';
@@ -6,9 +6,6 @@ import 'webxr-polyfill';
 const AppScene = ({ onClose }) => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [bannerMessage, setBannerMessage] = useState("");
-
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
@@ -30,15 +27,16 @@ const AppScene = ({ onClose }) => {
     if (!navigator.xr) {
       let message = "Your device does not support WebXR.";
       if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += " Use Chrome and install this extension: ";
-        message += `<a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>`;
+        message += "\nUse Chrome and install this extension:\n";
+        message += "https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en";
       } else if (/Android/i.test(navigator.userAgent)) {
-        message += " Use Mozilla Firefox.";
+        message += "\nUse Mozilla Firefox.";
       } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
-        message += ` Use <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>.`;
+        message += "\nUse WebXR Viewer:\n";
+        message += "https://apps.apple.com/us/app/webxr-viewer/id1295998056";
       }
-      setBannerMessage(message);
-      setShowBanner(true);
+
+      alert(message);
     }
   };
 
@@ -139,21 +137,6 @@ const AppScene = ({ onClose }) => {
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
-      {showBanner && (
-        <div style={{
-          position: 'fixed',
-          top: '0',
-          width: '100%',
-          backgroundColor: '#ff4444',
-          color: 'white',
-          padding: '10px',
-          textAlign: 'center',
-          zIndex: '1000',
-        }}>
-          <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
-        </div>
-      )}
-
       <button onClick={onClose} style={{
         position: 'absolute',
         top: '10px',
