@@ -8,7 +8,6 @@ const AppScene = ({ onClose }) => {
   const sceneRef = useRef(null);
   const [showBanner, setShowBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState("");
-
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
@@ -16,22 +15,19 @@ const AppScene = ({ onClose }) => {
     if (!navigator.xr) return;
 
     init();
-    animate();
-
-    // Automatically start AR without button
     startAR();
+    animate();
 
     return () => {
       sceneRef.current?.removeChild(renderer.domElement);
     };
   }, []);
 
-  const checkARSupport = async () => {
+  const checkARSupport = () => {
     if (!navigator.xr) {
       let message = "Your device does not support WebXR.";
       if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += " Use Chrome and install this extension: ";
-        message += `<a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>`;
+        message += ` Use Chrome and install this <a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>.`;
       } else if (/Android/i.test(navigator.userAgent)) {
         message += " Use Mozilla Firefox.";
       } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
@@ -39,21 +35,6 @@ const AppScene = ({ onClose }) => {
       }
       setBannerMessage(message);
       setShowBanner(true);
-    }
-  };
-
-  const startAR = async () => {
-    if (navigator.xr) {
-      try {
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['local-floor']
-        });
-
-        renderer.xr.setSession(session);
-      } catch (error) {
-        console.error("Failed to start AR session", error);
-      }
     }
   };
 
@@ -90,11 +71,22 @@ const AppScene = ({ onClose }) => {
         scene.add(model);
       },
       undefined,
-      (error) => console.error('An error occurred while loading the model:', error)
+      (error) => console.error('Error loading model:', error)
     );
 
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('wheel', onZoom);
+  };
+
+  const startAR = async () => {
+    if (navigator.xr) {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+        renderer.xr.setSession(session);
+      } catch (error) {
+        console.error('Failed to start AR session:', error);
+      }
+    }
   };
 
   const onSelect = () => {
@@ -118,10 +110,7 @@ const AppScene = ({ onClose }) => {
     if (model) {
       const zoomFactor = 1 - event.deltaY * 0.001;
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
-
-      if (newScale.x > 0.01 && newScale.x < 1) {
-        model.scale.copy(newScale);
-      }
+      if (newScale.x > 0.01 && newScale.x < 1) model.scale.copy(newScale);
     }
   };
 
@@ -137,9 +126,15 @@ const AppScene = ({ onClose }) => {
     renderer.render(scene, camera);
   };
 
+  const handleClose = () => {
+    if (renderer.xr.getSession()) {
+      renderer.xr.getSession().end();
+    }
+    onClose();
+  };
+
   return (
-    <>
-      {/* Notification Banner */}
+    <div ref={containerRef} style={{ position: 'relative' }}>
       {showBanner && (
         <div
           style={{
@@ -150,23 +145,17 @@ const AppScene = ({ onClose }) => {
             color: 'white',
             padding: '10px',
             textAlign: 'center',
-            zIndex: '10000', // Ensure it's above AR view
+            zIndex: '1000',
           }}
         >
           <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
         </div>
       )}
-  
-      {/* Close Button - Ensure it's visible inside AR */}
+
       <button
-        onClick={() => {
-          if (renderer) {
-            renderer.xr.getSession().end(); // End WebXR session properly
-          }
-          setShowBanner(false); // Hide banner when AR closes
-        }}
+        onClick={handleClose}
         style={{
-          position: 'fixed', // Keep on top in AR
+          position: 'absolute',
           top: '10px',
           right: '10px',
           background: 'red',
@@ -175,18 +164,14 @@ const AppScene = ({ onClose }) => {
           padding: '10px',
           fontSize: '16px',
           cursor: 'pointer',
-          zIndex: '10000', // High z-index to stay on top
+          zIndex: 1000,
           borderRadius: '50%',
         }}
       >
         ✕
       </button>
-  
-      {/* AR Scene */}
-      <div ref={containerRef} style={{ position: 'relative' }} />
-    </>
+    </div>
   );
-  
 };
 
 export default AppScene;
