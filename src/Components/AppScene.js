@@ -84,17 +84,23 @@ const AppScene = ({ onClose }) => {
       '/3DModels/tshirt.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01);
-        model.rotation.x = Math.PI / -2;
-        model.position.set(0, 0, -2);
+        model.scale.set(0.01, 0.01, 0.01); // Adjusted scale
+        model.rotation.x = Math.PI/-2; // Keep it upright
+        model.position.set(0, 0, -2); // Adjusted position (higher and forward)
         scene.add(model);
       },
       undefined,
-      (error) => console.error('An error occurred while loading the model:', error)
+      (error) => {
+        console.error('An error occurred while loading the model:', error);
+      }
     );
 
+    document.body.appendChild(ARButton.createButton(renderer, {
+      requiredFeatures: ['hit-test'],
+    }));
+
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('wheel', onZoom);
+    window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
   };
 
   const onSelect = () => {
@@ -116,9 +122,10 @@ const AppScene = ({ onClose }) => {
 
   const onZoom = (event) => {
     if (model) {
-      const zoomFactor = 1 - event.deltaY * 0.001;
+      const zoomFactor = 1 - event.deltaY * 0.001; // Adjust zoom sensitivity
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
 
+      // Prevent the model from becoming too small or too large
       if (newScale.x > 0.01 && newScale.x < 1) {
         model.scale.copy(newScale);
       }
@@ -139,26 +146,7 @@ const AppScene = ({ onClose }) => {
     renderer.render(scene, camera);
   };
 
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      {showBanner && (
-        <div style={{
-          position: 'fixed',
-          top: '0',
-          width: '100%',
-          backgroundColor: '#ff4444',
-          color: 'white',
-          padding: '10px',
-          textAlign: 'center',
-          zIndex: '1000',
-        }}>
-          <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
-        </div>
-      )}
-
-      
-    </div>
-  );
+  return <div ref={containerRef} />;
 };
 
 export default AppScene;
