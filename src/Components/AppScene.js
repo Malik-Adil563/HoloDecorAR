@@ -3,16 +3,19 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import 'webxr-polyfill';
 
-const AppScene = ({ onClose }) => {
+const AppScene = () => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
-  const [isARActive, setIsARActive] = useState(false);
-  let camera, scene, renderer, controller, model, hitTestSource, hitTestSourceRequested;
+  const [showBanner, setShowBanner] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState("");
+  let camera, scene, renderer, controller, model;
 
   useEffect(() => {
+    checkARSupport();
     if (!navigator.xr) return;
 
     init();
+    startAR();
     animate();
 
     return () => {
@@ -21,6 +24,21 @@ const AppScene = ({ onClose }) => {
       }
     };
   }, []);
+
+  const checkARSupport = () => {
+    if (!navigator.xr) {
+      let message = "Your device does not support WebXR.";
+      if (/Windows|Mac/i.test(navigator.userAgent)) {
+        message += ` Use Chrome and install this <a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>.`;
+      } else if (/Android/i.test(navigator.userAgent)) {
+        message += " Use Mozilla Firefox.";
+      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
+        message += ` Use <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>.`;
+      }
+      setBannerMessage(message);
+      setShowBanner(true);
+    }
+  };
 
   const init = () => {
     const container = document.createElement('div');
@@ -44,12 +62,6 @@ const AppScene = ({ onClose }) => {
     controller.addEventListener('select', onSelect);
     scene.add(controller);
 
-    loadModel();
-
-    window.addEventListener('resize', onWindowResize, false);
-  };
-
-  const loadModel = () => {
     const loader = new GLTFLoader();
     loader.load(
       '/3DModels/tshirt.glb',
@@ -57,12 +69,15 @@ const AppScene = ({ onClose }) => {
         model = gltf.scene;
         model.scale.set(0.01, 0.01, 0.01);
         model.rotation.x = Math.PI / -2;
-        model.visible = false; // Hide until AR starts
+        model.position.set(0, 0, -2);
         scene.add(model);
       },
       undefined,
       (error) => console.error('Error loading model:', error)
     );
+
+    window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('wheel', onZoom);
   };
 
   const startAR = async () => {
@@ -70,62 +85,38 @@ const AppScene = ({ onClose }) => {
       try {
         const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
         renderer.xr.setSession(session);
-        setIsARActive(true);
 
-        session.addEventListener('end', () => {
-          setIsARActive(false);
-          if (model) model.visible = false;
-          onClose();
-        });
-
-        const referenceSpace = await session.requestReferenceSpace('local-floor');
-        renderer.xr.setReferenceSpace(referenceSpace);
-
-        session.addEventListener('select', placeModel);
-
-        session.requestAnimationFrame(onXRFrame);
+        // Hide banner when AR starts
+        setShowBanner(false);
       } catch (error) {
         console.error('Failed to start AR session:', error);
       }
     }
   };
 
-  const placeModel = () => {
+  const onSelect = () => {
     if (model) {
-      model.visible = true;
-      model.position.set(0, 0, -1.5); // Place it 1.5m in front of the user
+      const position = new THREE.Vector3();
+      position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
+      model.position.copy(position);
+
+      const originalScale = model.scale.clone();
+      const originalRotation = model.rotation.clone();
+
+      model.quaternion.setFromRotationMatrix(controller.matrixWorld);
+      model.rotation.x = originalRotation.x;
+      model.rotation.y = originalRotation.y;
+      model.rotation.z = originalRotation.z;
+      model.scale.copy(originalScale);
     }
   };
 
-  const onXRFrame = (time, frame) => {
-    const session = renderer.xr.getSession();
-    if (!session) return;
-
-    if (!hitTestSourceRequested) {
-      session.requestReferenceSpace('viewer').then((referenceSpace) => {
-        session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-          hitTestSource = source;
-        });
-      });
-
-      session.addEventListener('end', () => {
-        hitTestSourceRequested = false;
-        hitTestSource = null;
-      });
-
-      hitTestSourceRequested = true;
+  const onZoom = (event) => {
+    if (model) {
+      const zoomFactor = 1 - event.deltaY * 0.001;
+      const newScale = model.scale.clone().multiplyScalar(zoomFactor);
+      if (newScale.x > 0.01 && newScale.x < 1) model.scale.copy(newScale);
     }
-
-    if (hitTestSource) {
-      const hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length > 0 && model) {
-        const hitPose = hitTestResults[0].getPose(renderer.xr.getReferenceSpace());
-        model.position.copy(hitPose.transform.position);
-        model.visible = true;
-      }
-    }
-
-    session.requestAnimationFrame(onXRFrame);
   };
 
   const onWindowResize = () => {
@@ -133,33 +124,31 @@ const AppScene = ({ onClose }) => {
   };
 
   const animate = () => {
-    renderer.setAnimationLoop(() => {
-      renderer.render(scene, camera);
-    });
+    renderer.setAnimationLoop(render);
+  };
+
+  const render = () => {
+    renderer.render(scene, camera);
   };
 
   return (
     <>
-      {/* Close Button */}
-      {isARActive && (
-        <button
-          onClick={() => renderer.xr.getSession().end()}
+      {/* Banner - Visible only if AR is NOT active */}
+      {showBanner && (
+        <div
           style={{
             position: 'fixed',
-            top: '10px',
-            right: '10px',
-            background: 'red',
+            top: '0',
+            width: '100%',
+            backgroundColor: '#ff4444',
             color: 'white',
-            border: 'none',
             padding: '10px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            zIndex: 10000,
-            borderRadius: '50%',
+            textAlign: 'center',
+            zIndex: 1000, // Lower than AR elements
           }}
         >
-          ✕
-        </button>
+          <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
+        </div>
       )}
 
       {/* AR Scene */}
