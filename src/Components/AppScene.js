@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ARButton } from './ARButton.js'
 import 'webxr-polyfill';
 
 const AppScene = ({ onClose }) => {
@@ -8,18 +9,22 @@ const AppScene = ({ onClose }) => {
   const sceneRef = useRef(null);
   const [showBanner, setShowBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState("");
+
+  // Declare the variables here
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
     checkARSupport();
-    if (!navigator.xr) return;
+    if (!navigator.xr) {
+      return;
+    }
 
     init();
     startAR();
     animate();
 
     return () => {
-      sceneRef.current?.removeChild(renderer.domElement);
+      sceneRef.current.removeChild(renderer.domElement);
     };
   }, []);
 
@@ -27,23 +32,39 @@ const AppScene = ({ onClose }) => {
     if (!navigator.xr) {
       let message = "Your device does not support WebXR.";
       if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += ` Use Chrome and install this <a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>.`;
+        message += " Use Chrome and install this extension: ";
+        message += <a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>;
       } else if (/Android/i.test(navigator.userAgent)) {
         message += " Use Mozilla Firefox.";
       } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
-        message += ` Use <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>.`;
+        message +=  "Use"; message += <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>;
       }
       setBannerMessage(message);
       setShowBanner(true);
     }
   };
 
+  const startAR = async () => {
+    if (navigator.xr) {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+        renderer.xr.setSession(session);
+      } catch (error) {
+        console.error('Failed to start AR session:', error);
+      }
+    }
+  };
+
+
   const init = () => {
+    // Set up the scene, camera, renderer, etc.
     const container = document.createElement('div');
     containerRef.current.appendChild(container);
     sceneRef.current = container;
 
     scene = new THREE.Scene();
+
+    // Properly initialize camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 40);
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -65,28 +86,19 @@ const AppScene = ({ onClose }) => {
       '/3DModels/tshirt.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01);
-        model.rotation.x = Math.PI / -2;
-        model.position.set(0, 0, -2);
+        model.scale.set(0.01, 0.01, 0.01); // Adjusted scale
+        model.rotation.x = Math.PI / -2; // Keep it upright
+        model.position.set(0, 0, -2); // Adjusted position (higher and forward)
         scene.add(model);
       },
       undefined,
-      (error) => console.error('Error loading model:', error)
+      (error) => {
+        console.error('An error occurred while loading the model:', error);
+      }
     );
 
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('wheel', onZoom);
-  };
-
-  const startAR = async () => {
-    if (navigator.xr) {
-      try {
-        const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
-        renderer.xr.setSession(session);
-      } catch (error) {
-        console.error('Failed to start AR session:', error);
-      }
-    }
+    window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
   };
 
   const onSelect = () => {
@@ -108,9 +120,13 @@ const AppScene = ({ onClose }) => {
 
   const onZoom = (event) => {
     if (model) {
-      const zoomFactor = 1 - event.deltaY * 0.001;
+      const zoomFactor = 1 - event.deltaY * 0.001; // Adjust zoom sensitivity
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
-      if (newScale.x > 0.01 && newScale.x < 1) model.scale.copy(newScale);
+
+      // Prevent the model from becoming too small or too large
+      if (newScale.x > 0.01 && newScale.x < 1) {
+        model.scale.copy(newScale);
+      }
     }
   };
 
@@ -123,18 +139,12 @@ const AppScene = ({ onClose }) => {
   };
 
   const render = () => {
-    renderer.render(scene, camera);
-  };
-
-  const handleClose = () => {
-    if (renderer.xr.getSession()) {
-      renderer.xr.getSession().end();
-    }
-    onClose();
+    renderer.render(scene, camera); // Use the WebXR camera
   };
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
+      {/* Notification Banner */}
       {showBanner && (
         <div
           style={{
@@ -152,8 +162,9 @@ const AppScene = ({ onClose }) => {
         </div>
       )}
 
+      {/* Close Button */}
       <button
-        onClick={handleClose}
+        onClick={onClose}
         style={{
           position: 'absolute',
           top: '10px',
