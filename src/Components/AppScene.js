@@ -1,61 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ARButton } from './ARButton.js';
 import 'webxr-polyfill';
 
-const AppScene = ({ onClose }) => {
+const AppScene = () => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
-  const [showBanner, setShowBanner] = useState(false);
-  const [bannerMessage, setBannerMessage] = useState("");
-
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
-    checkARSupport();
-    if (!navigator.xr) return;
+    if (!navigator.xr) {
+      alert('Your device does not support WebXR.');
+      return;
+    }
 
     init();
     animate();
 
-    // Automatically start AR without button
-    startAR();
-
     return () => {
-      sceneRef.current?.removeChild(renderer.domElement);
+      sceneRef.current.removeChild(renderer.domElement);
     };
   }, []);
-
-  const checkARSupport = async () => {
-    if (!navigator.xr) {
-      let message = "Your device does not support WebXR.";
-      if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += " Use Chrome and install this extension: ";
-        message += `<a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>`;
-      } else if (/Android/i.test(navigator.userAgent)) {
-        message += " Use Mozilla Firefox.";
-      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
-        message += ` Use <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>.`;
-      }
-      setBannerMessage(message);
-      setShowBanner(true);
-    }
-  };
-
-  const startAR = async () => {
-    if (navigator.xr) {
-      try {
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['local-floor']
-        });
-
-        renderer.xr.setSession(session);
-      } catch (error) {
-        console.error("Failed to start AR session", error);
-      }
-    }
-  };
 
   const init = () => {
     const container = document.createElement('div');
@@ -94,7 +60,11 @@ const AppScene = ({ onClose }) => {
         console.error('An error occurred while loading the model:', error);
       }
     );
-    
+
+    document.body.appendChild(ARButton.createButton(renderer, {
+      requiredFeatures: ['hit-test'],
+    }));
+
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
   };
