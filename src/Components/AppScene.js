@@ -1,27 +1,45 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { ARButton } from './ARButton.js';
 import 'webxr-polyfill';
 
-const AppScene = () => {
+const AppScene = ({ onClose }) => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
+  const [showBanner, setShowBanner] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState("");
+  const [isARActive, setIsARActive] = useState(false); // Track AR state
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
-    if (!navigator.xr) {
-      alert('Your device does not support WebXR.');
-      return;
-    }
+    checkARSupport();
+    if (!navigator.xr) return;
 
     init();
+    startAR();
     animate();
 
     return () => {
-      sceneRef.current.removeChild(renderer.domElement);
+      if (renderer && renderer.domElement) {
+        sceneRef.current?.removeChild(renderer.domElement);
+      }
     };
   }, []);
+
+  const checkARSupport = () => {
+    if (!navigator.xr) {
+      let message = "Your device does not support WebXR.";
+      if (/Windows|Mac/i.test(navigator.userAgent)) {
+        message += ` Use Chrome and install this <a href="https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en" target="_blank">WebXR Emulator</a>.`;
+      } else if (/Android/i.test(navigator.userAgent)) {
+        message += " Use Mozilla Firefox.";
+      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
+        message += ` Use <a href="https://apps.apple.com/us/app/webxr-viewer/id1295998056" target="_blank">WebXR Viewer</a>.`;
+      }
+      setBannerMessage(message);
+      setShowBanner(true);
+    }
+  };
 
   const init = () => {
     const container = document.createElement('div');
@@ -50,23 +68,38 @@ const AppScene = () => {
       '/3DModels/tshirt.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01); // Adjusted scale
-        model.rotation.x = Math.PI/-2; // Keep it upright
-        model.position.set(0, 0, -2); // Adjusted position (higher and forward)
+        model.scale.set(0.01, 0.01, 0.01);
+        model.rotation.x = Math.PI / -2;
+        model.position.set(0, 0, -2);
         scene.add(model);
       },
       undefined,
-      (error) => {
-        console.error('An error occurred while loading the model:', error);
-      }
+      (error) => console.error('Error loading model:', error)
     );
 
-    document.body.appendChild(ARButton.createButton(renderer, {
-      requiredFeatures: ['hit-test'],
-    }));
-
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
+    window.addEventListener('wheel', onZoom);
+  };
+
+  const startAR = async () => {
+    if (navigator.xr) {
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+        renderer.xr.setSession(session);
+        setIsARActive(true); // Mark AR as active
+
+        // Hide banner when AR starts
+        setShowBanner(false);
+
+        // Listen for AR session end
+        session.addEventListener('end', () => {
+          setIsARActive(false);
+          onClose(); // Ensure page state updates
+        });
+      } catch (error) {
+        console.error('Failed to start AR session:', error);
+      }
+    }
   };
 
   const onSelect = () => {
@@ -88,19 +121,13 @@ const AppScene = () => {
 
   const onZoom = (event) => {
     if (model) {
-      const zoomFactor = 1 - event.deltaY * 0.001; // Adjust zoom sensitivity
+      const zoomFactor = 1 - event.deltaY * 0.001;
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
-
-      // Prevent the model from becoming too small or too large
-      if (newScale.x > 0.01 && newScale.x < 1) {
-        model.scale.copy(newScale);
-      }
+      if (newScale.x > 0.01 && newScale.x < 1) model.scale.copy(newScale);
     }
   };
 
   const onWindowResize = () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
@@ -112,7 +139,58 @@ const AppScene = () => {
     renderer.render(scene, camera);
   };
 
-  return <div ref={containerRef} />;
+  const handleClose = () => {
+    if (renderer.xr.getSession()) {
+      renderer.xr.getSession().end();
+    }
+  };
+
+  return (
+    <>
+      {/* Banner - Visible only if AR is NOT active */}
+      {showBanner && !isARActive && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '0',
+            width: '100%',
+            backgroundColor: '#ff4444',
+            color: 'white',
+            padding: '10px',
+            textAlign: 'center',
+            zIndex: 1000, // Lower than AR elements
+          }}
+        >
+          <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
+        </div>
+      )}
+
+      {/* Close Button - Only visible in AR */}
+      {isARActive && (
+        <button
+          onClick={handleClose}
+          style={{
+            position: 'fixed',
+            top: '10px',
+            right: '10px',
+            background: 'red',
+            color: 'white',
+            border: 'none',
+            padding: '10px',
+            fontSize: '16px',
+            cursor: 'pointer',
+            zIndex: 10000, // Higher z-index to stay on top in AR
+            borderRadius: '50%',
+          }}
+        >
+          ✕
+        </button>
+      )}
+
+      {/* AR Scene */}
+      <div ref={containerRef} style={{ position: 'relative' }} />
+    </>
+  );
 };
 
 export default AppScene;
