@@ -155,12 +155,7 @@ const AppScene = ({ onClose }) => {
       )}
 
 <button
-  onClick={() => {
-    const container = containerRef.current;
-    if (container) {
-      container.innerHTML = ""; // Clear the AR scene
-    }
-  }}
+  onClick={() => window.location.reload()} // Refreshes the page
   style={{
     position: 'absolute',
     top: '10px',
