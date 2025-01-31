@@ -94,11 +94,7 @@ const AppScene = ({ onClose }) => {
         console.error('An error occurred while loading the model:', error);
       }
     );
-
-    document.body.appendChild(ARButton.createButton(renderer, {
-      requiredFeatures: ['hit-test'],
-    }));
-
+    
     window.addEventListener('resize', onWindowResize, false);
     window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
   };
