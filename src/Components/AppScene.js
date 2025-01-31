@@ -10,34 +10,43 @@ const AppScene = ({ onClose }) => {
 
   useEffect(() => {
     checkARSupport();
-    if (!navigator.xr) return;
+  }, []);
+
+  const showWarningNotification = (message) => {
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        new Notification("⚠️ WebXR Warning", { body: message });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            new Notification("⚠️ WebXR Warning", { body: message });
+          }
+        });
+      }
+    } else {
+      console.warn("Notifications are not supported on this browser.");
+    }
+  };
+
+  const checkARSupport = async () => {
+    if (!navigator.xr || !(await navigator.xr.isSessionSupported('immersive-ar'))) {
+      let message = "Your device does not support WebXR.";
+      
+      if (/Windows|Mac/i.test(navigator.userAgent)) {
+        message += "\nUse Chrome and install WebXR Emulator extension.";
+      } else if (/Android/i.test(navigator.userAgent)) {
+        message += "\nUse Mozilla Firefox with WebXR extension.";
+      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
+        message += "\nUse WebXR Viewer.";
+      }
+
+      showWarningNotification(message);
+      return;
+    }
 
     init();
     animate();
-
-    // Automatically start AR without button
     startAR();
-
-    return () => {
-      sceneRef.current?.removeChild(renderer.domElement);
-    };
-  }, []);
-
-  const checkARSupport = async () => {
-    if (!navigator.xr) {
-      let message = "Your device does not support WebXR.";
-      if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += "\nUse Chrome and install this extension:\n";
-        message += "https://chromewebstore.google.com/detail/webxr-api-emulator/mjddjgeghkdijejnciaefnkjmkafnnje?hl=en";
-      } else if (/Android/i.test(navigator.userAgent)) {
-        message += "\nUse Mozilla Firefox.";
-      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
-        message += "\nUse WebXR Viewer:\n";
-        message += "https://apps.apple.com/us/app/webxr-viewer/id1295998056";
-      }
-
-      alert(message);
-    }
   };
 
   const startAR = async () => {
