@@ -138,43 +138,55 @@ const AppScene = ({ onClose }) => {
   };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
+    <>
+      {/* Notification Banner */}
       {showBanner && (
-        <div style={{
-          position: 'fixed',
-          top: '0',
-          width: '100%',
-          backgroundColor: '#ff4444',
-          color: 'white',
-          padding: '10px',
-          textAlign: 'center',
-          zIndex: '1000',
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: '0',
+            width: '100%',
+            backgroundColor: '#ff4444',
+            color: 'white',
+            padding: '10px',
+            textAlign: 'center',
+            zIndex: '10000', // Ensure it's above AR view
+          }}
+        >
           <span dangerouslySetInnerHTML={{ __html: bannerMessage }} />
         </div>
       )}
-
-<button
-  onClick={() => window.location.reload()} // Refreshes the page
-  style={{
-    position: 'absolute',
-    top: '10px',
-    right: '10px',
-    background: 'red',
-    color: 'white',
-    border: 'none',
-    padding: '10px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    zIndex: 1000,
-    borderRadius: '50%',
-  }}
->
-  ✕
-</button>
-
-    </div>
+  
+      {/* Close Button - Ensure it's visible inside AR */}
+      <button
+        onClick={() => {
+          if (renderer) {
+            renderer.xr.getSession().end(); // End WebXR session properly
+          }
+          setShowBanner(false); // Hide banner when AR closes
+        }}
+        style={{
+          position: 'fixed', // Keep on top in AR
+          top: '10px',
+          right: '10px',
+          background: 'red',
+          color: 'white',
+          border: 'none',
+          padding: '10px',
+          fontSize: '16px',
+          cursor: 'pointer',
+          zIndex: '10000', // High z-index to stay on top
+          borderRadius: '50%',
+        }}
+      >
+        ✕
+      </button>
+  
+      {/* AR Scene */}
+      <div ref={containerRef} style={{ position: 'relative' }} />
+    </>
   );
+  
 };
 
 export default AppScene;
