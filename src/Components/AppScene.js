@@ -65,17 +65,19 @@ const AppScene = () => {
       '/3DModels/tshirt.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01);
-        model.rotation.x = Math.PI / -2;
-        model.position.set(0, 0, -2);
+        model.scale.set(0.01, 0.01, 0.01); // Adjusted scale
+        model.rotation.x = Math.PI/-2; // Keep it upright
+        model.position.set(0, 0, -2); // Adjusted position (higher and forward)
         scene.add(model);
       },
       undefined,
-      (error) => console.error('An error occurred while loading the model:', error)
+      (error) => {
+        console.error('An error occurred while loading the model:', error);
+      }
     );
 
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('wheel', onZoom);
+    window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
   };
 
   const onSelect = () => {
