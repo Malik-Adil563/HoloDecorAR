@@ -3,25 +3,51 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import 'webxr-polyfill';
 
-const AppScene = () => {
+const AppScene = ({ onClose }) => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
-    if (!navigator.xr) {
-      alert('Your device does not support WebXR.');
+    checkARSupport();
+  }, []);
+
+  const showWarningNotification = (message) => {
+    if ("Notification" in window) {
+      if (Notification.permission === "granted") {
+        new Notification("⚠️ WebXR Warning", { body: message });
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            new Notification("⚠️ WebXR Warning", { body: message });
+          }
+        });
+      }
+    } else {
+      console.warn("Notifications are not supported on this browser.");
+    }
+  };
+
+  const checkARSupport = async () => {
+    if (!navigator.xr || !(await navigator.xr.isSessionSupported('immersive-ar'))) {
+      let message = "Your device does not support WebXR.";
+      
+      if (/Windows|Mac/i.test(navigator.userAgent)) {
+        message += "\nUse Chrome and install WebXR Emulator extension.";
+      } else if (/Android/i.test(navigator.userAgent)) {
+        message += "\nUse Mozilla Firefox with WebXR extension.";
+      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
+        message += "\nUse WebXR Viewer.";
+      }
+
+      showWarningNotification(message);
       return;
     }
 
     init();
     animate();
     startAR();
-
-    return () => {
-      sceneRef.current.removeChild(renderer.domElement);
-    };
-  }, []);
+  };
 
   const startAR = async () => {
     if (navigator.xr) {
@@ -65,19 +91,17 @@ const AppScene = () => {
       '/3DModels/tshirt.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01); // Adjusted scale
-        model.rotation.x = Math.PI/-2; // Keep it upright
-        model.position.set(0, 0, -2); // Adjusted position (higher and forward)
+        model.scale.set(0.01, 0.01, 0.01);
+        model.rotation.x = Math.PI / -2;
+        model.position.set(0, 0, -2);
         scene.add(model);
       },
       undefined,
-      (error) => {
-        console.error('An error occurred while loading the model:', error);
-      }
+      (error) => console.error('An error occurred while loading the model:', error)
     );
 
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('wheel', onZoom); // Add mouse wheel event listener
+    window.addEventListener('wheel', onZoom);
   };
 
   const onSelect = () => {
@@ -99,10 +123,9 @@ const AppScene = () => {
 
   const onZoom = (event) => {
     if (model) {
-      const zoomFactor = 1 - event.deltaY * 0.001; // Adjust zoom sensitivity
+      const zoomFactor = 1 - event.deltaY * 0.001;
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
 
-      // Prevent the model from becoming too small or too large
       if (newScale.x > 0.01 && newScale.x < 1) {
         model.scale.copy(newScale);
       }
@@ -110,8 +133,6 @@ const AppScene = () => {
   };
 
   const onWindowResize = () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
@@ -123,7 +144,25 @@ const AppScene = () => {
     renderer.render(scene, camera);
   };
 
-  return <div ref={containerRef} />;
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button onClick={onClose} style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        background: 'red',
+        color: 'white',
+        border: 'none',
+        padding: '10px',
+        fontSize: '16px',
+        cursor: 'pointer',
+        zIndex: 1000,
+        borderRadius: '50%',
+      }}>
+        ✕
+      </button>
+    </div>
+  );
 };
 
 export default AppScene;
