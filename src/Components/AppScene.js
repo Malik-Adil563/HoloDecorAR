@@ -1,53 +1,27 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import 'webxr-polyfill';
 
-const AppScene = ({ onClose }) => {
+const AppScene = () => {
   const containerRef = useRef(null);
   const sceneRef = useRef(null);
   let camera, scene, renderer, controller, model;
 
   useEffect(() => {
-    checkARSupport();
-  }, []);
-
-  const showWarningNotification = (message) => {
-    if ("Notification" in window) {
-      if (Notification.permission === "granted") {
-        new Notification("⚠️ WebXR Warning", { body: message });
-      } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            new Notification("⚠️ WebXR Warning", { body: message });
-          }
-        });
-      }
-    } else {
-      console.warn("Notifications are not supported on this browser.");
-    }
-  };
-
-  const checkARSupport = async () => {
-    if (!navigator.xr || !(await navigator.xr.isSessionSupported('immersive-ar'))) {
-      let message = "Your device does not support WebXR.";
-      
-      if (/Windows|Mac/i.test(navigator.userAgent)) {
-        message += "\nUse Chrome and install WebXR Emulator extension.";
-      } else if (/Android/i.test(navigator.userAgent)) {
-        message += "\nUse Mozilla Firefox with WebXR extension.";
-      } else if (/iPhone|iPad/i.test(navigator.userAgent)) {
-        message += "\nUse WebXR Viewer.";
-      }
-
-      showWarningNotification(message);
+    if (!navigator.xr) {
+      alert('Your device does not support WebXR.');
       return;
     }
 
     init();
     animate();
     startAR();
-  };
+
+    return () => {
+      sceneRef.current.removeChild(renderer.domElement);
+    };
+  }, []);
 
   const startAR = async () => {
     if (navigator.xr) {
@@ -123,9 +97,10 @@ const AppScene = ({ onClose }) => {
 
   const onZoom = (event) => {
     if (model) {
-      const zoomFactor = 1 - event.deltaY * 0.001;
+      const zoomFactor = 1 - event.deltaY * 0.001; // Adjust zoom sensitivity
       const newScale = model.scale.clone().multiplyScalar(zoomFactor);
 
+      // Prevent the model from becoming too small or too large
       if (newScale.x > 0.01 && newScale.x < 1) {
         model.scale.copy(newScale);
       }
@@ -133,6 +108,8 @@ const AppScene = ({ onClose }) => {
   };
 
   const onWindowResize = () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
@@ -144,25 +121,7 @@ const AppScene = ({ onClose }) => {
     renderer.render(scene, camera);
   };
 
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <button onClick={onClose} style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        background: 'red',
-        color: 'white',
-        border: 'none',
-        padding: '10px',
-        fontSize: '16px',
-        cursor: 'pointer',
-        zIndex: 1000,
-        borderRadius: '50%',
-      }}>
-        ✕
-      </button>
-    </div>
-  );
+  return <div ref={containerRef} />;
 };
 
 export default AppScene;
