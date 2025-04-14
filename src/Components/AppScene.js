@@ -91,9 +91,9 @@ const AppScene = ({ onClose }) => {
       '/3DModels/painted_sofa.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.01, 0.01, 0.01);
-        model.rotation.x = Math.PI / -2;
-        model.position.set(0, 0, -2);
+        model.scale.set(0.02, 0.02, 0.02);  // Larger scale
+        //model.rotation.x = Math.PI / 2;
+        model.position.set(0, -0.1, -0.8);  // Closer and slightly lower if needed
         scene.add(model);
       },
       undefined,
